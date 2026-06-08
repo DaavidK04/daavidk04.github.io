@@ -8,6 +8,17 @@ author: "David Kajkic & Tim Terbach"
 ## Motivation
 
 ## Table of Contents
+- [Motivation](#motivation)
+- [Table of Contents](#table-of-contents)
+- [Background](#background)
+- [GraphQA Benchmark](#graphqa-benchmark)
+- [G-Retriever Architecture](#g-retriever-architecture)
+- [Hallucination](#hallucination)
+- [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
+- [Results](#results)
+- [Critical Assessment](#critical-assessment)
+- [Conclusion](#conclusion)
+- [References](#references)
 
 ## Background
 
@@ -17,7 +28,7 @@ author: "David Kajkic & Tim Terbach"
 
 ## Hallucination 
 
-## Scalability
+## Challenges: Hallucination & Scalability
 
 ## Results
 
