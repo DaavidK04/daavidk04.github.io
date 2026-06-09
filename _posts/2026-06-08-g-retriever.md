@@ -33,6 +33,17 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 
 ## Background
 
+**GNN**:
+A Graph Neural Network (GNN) is essentially a neural network tailored for graph structures. Instead of processing fixed inputs, it learns representations by having each node collect information from its neighbors. Through multiple layers of message passing, these local insights propagate across the graph, allowing the model to capture both local patterns and the global structure.
+
+**RAG**:
+Retrieval-Augmented Generation (RAG) is a method that improves LLMs by retrieving relevant information at inference time rather than depending just on the parametric knowledge of the model. Given a query, a retriever fetches the most relevant documents or data points from an external source, which are then passed to the LLM as further context for generating the response. This reduces hallucination and allows the model to process data that is outside of its context window or was not seen during training
+
+**Soft Prompt Tuning**:
+Fine-tuning an entire LLM is not practical in most cases – most modern models have billions of parameters, making full fine-tuning extremely expensive. Soft prompt tuning however, takes a different approach: it keeps the base model frozen and prepends a small set of trainable vectors to the input. Only these vectors are updated during the training while the rest of the model remains untouched. The result is a much cheaper fine tuning process while retaining the model's pre trained linguistic knowledge.
+
+
+
 ## GraphQA Benchmark
 
 ## G-Retriever Architecture
