@@ -46,6 +46,18 @@ Fine-tuning an entire LLM is not practical in most cases – most modern models 
 
 ## GraphQA Benchmark
 
+Since no suitable benchmark for graph question answering existed, the authors introduced GraphQA. Each entry in the benchmark follows a straightforward structure: a textual graph, a question, and an answer. The graph is provided in a CSV-like format listing all nodes and edges, and the model's job is to find the correct answer based on that.
+
+GraphQA uses three datasets that increase in difficulty:
+
+**ExplaGraphs**: Small graphs ($\approx 5$ nodes and $\approx 4$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts.
+
+**SceneGraphs**: Medium-sized graphs ($\approx 19$ nodes and $\approx 68$ edges), describing objects and their spatial relationships within images. A typical question would be: *"Is there a woman to the right of the person behind the computer?"* 
+
+**WebQSP**: Large scale knowledge graphs, requiring multi-hop reasoning across several edges. A typical question would be: *"What is the name of Justin Bieber's brother?"*
+
+The three datasets are deliberately varied – the goal is to show that G-Retriever works across different graph types and sizes, not just one specific use case.
+
 ## G-Retriever Architecture
 
 ## Hallucination 
