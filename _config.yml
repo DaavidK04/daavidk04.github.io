@@ -2,3 +2,6 @@ title: "David Kajkic"
 description: "Software Engineering Student"
 theme: minima
 author: "David Kajkic"
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
