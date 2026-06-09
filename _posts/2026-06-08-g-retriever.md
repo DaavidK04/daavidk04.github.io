@@ -60,6 +60,13 @@ The three datasets are deliberately varied – the goal is to show that G-Retrie
 
 ## G-Retriever Architecture
 
+G-Retriever processes each query through a four-step pipeline.
+
+1. **Indexing**: Before any query is processed, all nodes and edges are converted into embedding vectors and stored. This is done upfront, so the systen does not have to recompute the embeddings every time a new question comes in.
+2. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
+3. **Subgraph construction**: Difference between RAG and G-, PCST (how deep should we explain that?)
+4. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
+
 ## Hallucination 
 
 ## Challenges: Hallucination & Scalability
