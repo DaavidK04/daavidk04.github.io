@@ -33,6 +33,7 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
 - [G-Retriever Architecture](#g-retriever-architecture)
+  - [Indexing:](#indexing)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
 - [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
@@ -50,7 +51,9 @@ $$h_v^{(k)} = \text{UPDATE}\left(h_v^{(k-1)},\ \text{AGGREGATE}\left(\{h_u^{(k-1
 
 **LLM**:
 As already mentioned in the motivation section, a Large Language Model generates one token after another. This mechanism is called autoregressive generation. It always chooses the most likely next token given everything written so far. In short, we define this as:
+
 $$p(y_i \mid y_1, y_2, \dots, y_{i-1})$$
+
 where $y_i$ is the next token and $y_1 ... y_{i-1}$ are all previous tokens. So the probability of the next token is dependent on all earlier tokens.
 Although LLMs are strong with language, they only work well as long as the input fits into the context window – a whole graph does not – which is the problem RAG is built to solve.
 
@@ -61,12 +64,16 @@ The RAG described so far is just the generic version for text and documents. The
 
 ## G-Retriever Architecture
 
-G-Retriever processes each query through a four-step pipeline.
+Now, all three components from the background come together. G-Retriever processes each query through a four-step pipeline.
 
-1. **Indexing**: Before any query is processed, all nodes and edges are converted into embedding vectors and stored. This is done upfront, so the systen does not have to recompute the embeddings every time a new question comes in.
-2. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
-3. **Subgraph construction**: Difference between RAG and G-Retriever, PCST (how deep should we explain that?)
-4. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
+### Indexing: 
+Before any query is processed, all nodes and edges are converted into embedding vectors and stored:
+$$z_n = \text{LM}(x_n)$$
+Here, $x_n$ is the text at a certain node $n$, $LM$ is the embedding model (SentenceBERT in this case), and $z_n$ is the resulting embedding vector.
+This is done upfront, so the system does not have to recompute the embeddings every time a new question comes in. The computed embeddings are then stored into a Nearest-Neighbor-Structure. With that, the whole graph is represented as searchable vectors. But the actual search – the crucial part that connects the user's question to the graph – is still missing. The next step deals with filling the gap from a query to the relevant nodes.
+1. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
+2. **Subgraph construction**: Difference between RAG and G-Retriever, PCST (how deep should we explain that?)
+3. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
 
 ## GraphQA Benchmark
 
