@@ -68,7 +68,9 @@ Now, all three components from the background come together. G-Retriever process
 
 ### Indexing: 
 Before any query is processed, all nodes and edges are converted into embedding vectors and stored:
+
 $$z_n = \text{LM}(x_n)$$
+
 Here, $x_n$ is the text at a certain node $n$, $LM$ is the embedding model (SentenceBERT in this case), and $z_n$ is the resulting embedding vector.
 This is done upfront, so the system does not have to recompute the embeddings every time a new question comes in. The computed embeddings are then stored into a Nearest-Neighbor-Structure. With that, the whole graph is represented as searchable vectors. But the actual search – the crucial part that connects the user's question to the graph – is still missing. The next step deals with filling the gap from a query to the relevant nodes.
 1. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
