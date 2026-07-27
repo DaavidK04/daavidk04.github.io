@@ -32,10 +32,10 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 - [Motivation](#motivation)
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
-- [GraphQA Benchmark](#graphqa-benchmark)
 - [G-Retriever Architecture](#g-retriever-architecture)
-- [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
+- [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
+- [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
 - [Critical Assessment](#critical-assessment)
 - [Conclusion](#conclusion)
 - [References](#references)
@@ -59,7 +59,14 @@ Retrieval-Augmented Generation is a method that improves LLMs by retrieving rele
 
 The RAG described so far is just the generic version for text and documents. The question arises how it can be applied to graphs, since the graph structure now has to be taken into consideration. This is exactly the problem G-Retriever solves.
 
+## G-Retriever Architecture
 
+G-Retriever processes each query through a four-step pipeline.
+
+1. **Indexing**: Before any query is processed, all nodes and edges are converted into embedding vectors and stored. This is done upfront, so the systen does not have to recompute the embeddings every time a new question comes in.
+2. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
+3. **Subgraph construction**: Difference between RAG and G-Retriever, PCST (how deep should we explain that?)
+4. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
 
 ## GraphQA Benchmark
 
@@ -75,31 +82,7 @@ GraphQA uses three datasets that increase in difficulty:
 
 The three datasets are deliberately varied – the goal is to show that G-Retriever works across different graph types and sizes, not just one specific use case.
 
-## G-Retriever Architecture
 
-G-Retriever processes each query through a four-step pipeline.
-
-1. **Indexing**: Before any query is processed, all nodes and edges are converted into embedding vectors and stored. This is done upfront, so the systen does not have to recompute the embeddings every time a new question comes in.
-2. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
-3. **Subgraph construction**: Difference between RAG and G-Retriever, PCST (how deep should we explain that?)
-4. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
-
-## Challenges: Hallucination & Scalability
-
-Two of the most critical limitations of existing approaches are hallucinations and poor scalability. G-Retriever tackles both through its RAG-based design.
-
-**<u>Hallucinations</u>**:
-- Baseline compresses entire graph into single embedding vector -> information loss-> LLM hallucinations nodes/edges
-- G-Retriever retrieves actual nodes/edges directly from graph -> less hallucination
-- Valid Nodes: 31% -> 77%, Valid Edges: 12% -> 76%, Fully Valid Graphs: 8% -> 62% (statistics relevant to the reader?)
-- 38% still not fully valid -> hallucination reduced, not eliminated
-
-
-**<u>Scalability</u>**:
-- Converting full graph to text not feasible for large graphs
-- WebQSP: $\approx 100000$ tokens before retrieval -> 610 after ($\downarrow$ 99%)
-- Training time also reduces (again a lot of numbers, leave out or not?)
-- Explain why pcst makes this possible? 
 ## Results
 
 **<u>Performance</u>**:
@@ -116,6 +99,23 @@ Two of the most critical limitations of existing approaches are hallucinations a
 
 **<u>Ablation study</u>**:
   
+## Challenges: Hallucination & Scalability
+
+Two of the most critical limitations of existing approaches are hallucinations and poor scalability. G-Retriever tackles both through its RAG-based design.
+
+**<u>Hallucinations</u>**:
+- Baseline compresses entire graph into single embedding vector -> information loss-> LLM hallucinations nodes/edges
+- G-Retriever retrieves actual nodes/edges directly from graph -> less hallucination
+- Valid Nodes: 31% -> 77%, Valid Edges: 12% -> 76%, Fully Valid Graphs: 8% -> 62% (statistics relevant to the reader?)
+- 38% still not fully valid -> hallucination reduced, not eliminated
+
+
+**<u>Scalability</u>**:
+- Converting full graph to text not feasible for large graphs
+- WebQSP: $\approx 100000$ tokens before retrieval -> 610 after ($\downarrow$ 99%)
+- Training time also reduces (again a lot of numbers, leave out or not?)
+- Explain why pcst makes this possible? 
+
 ## Critical Assessment
 
 - G-Retriever outperforms all baselines -> weak baseline -> no comparison against specialized knowledge graph systems that have been developed for years
