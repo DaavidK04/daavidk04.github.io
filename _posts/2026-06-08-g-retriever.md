@@ -8,7 +8,8 @@ author: "David Kajkic & Tim Terbach"
 <script>
 MathJax = {
   tex: {
-    inlineMath: [['$', '$'], ['\\(', '\\)']]
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
   }
 };
 </script>
@@ -19,9 +20,9 @@ To understand the problem G-Retriever solves, we first have to understand how mo
 This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words.   Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationship. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLMs context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
 
 G-Retriever provides an effective approach to address these issues, relying on three core concepts:
-- **GNN**: understands the graph structure
-- **LLM**: understands the text and generates answers
-- **RAG**: retrieves only the relevant subgraph instead of passing the entire graph to the LLM
+- **GNN** (Graph Neural Network): understands the graph structure
+- **LLM** (Large Language Lodel): understands the text and generates answers
+- **RAG** (Retrieval-Augmented Generation): retrieves only the relevant subgraph instead of passing the entire graph to the LLM
 
 The central concept is that answering a specific question requires only a small subset of the entire graph. G-Retriever uses the PCST algorithm to find this relevant subgraph, while keeping all relevant nodes and edges and still fitting into the LLM's context window.
 
@@ -42,13 +43,21 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 ## Background
 
 **GNN**:
-A Graph Neural Network (GNN) is essentially a neural network tailored for graph structures. Instead of processing fixed inputs, it learns representations by having each node collect information from its neighbors. Through multiple layers of message passing, these local insights propagate across the graph, allowing the model to capture both local patterns and the global structure.
+A Graph Neural Network is essentially a neural network tailored for graph structures. Instead of processing fixed inputs, it learns representations by having each node collect information from its neighbors. Through multiple layers of message passing, these local insights propagate across the graph, allowing the model to capture both local patterns and the global structure. In formal terms, this message passing step looks as follows:
+$$h_v^{(k)} = \text{UPDATE}\left(h_v^{(k-1)},\ \text{AGGREGATE}\left(\{h_u^{(k-1)} : u \in \mathcal{N}(v)\}\right)\right)$$
+//explain formula, maybe move into architecure section?
+//transition to llm: However, a GNN only delivers vectors, not a textual answer. This is where LLMs come in handy.
+
+**LLM**:
+As already mentioned in the motivation section, a Large Language Model generates one token after another. This mechanism is called autoregressive generation. It always chooses the most likely next token given everything written so far. In short, we define this as:
+$$p(y_i \mid y_1, y_2, \dots, y_{i-1})$$
+where $y_i$ is the next token and $y_1 ... y_{i-1}$ are all previous tokens. So the probability of the next token is dependent on all earlier tokens.
+Although LLMs are strong with language, they only work well as long as the input fits into the context window – a whole graph does not – which is the problem RAG is built to solve.
 
 **RAG**:
-Retrieval-Augmented Generation (RAG) is a method that improves LLMs by retrieving relevant information at inference time rather than depending just on the parametric knowledge of the model. Given a query, a retriever fetches the most relevant documents or data points from an external source, which are then passed to the LLM as further context for generating the response. This reduces hallucination and allows the model to process data that is outside of its context window or was not seen during training
+Retrieval-Augmented Generation is a method that improves LLMs by retrieving relevant information at inference time rather than depending just on the parametric knowledge of the model. Given a query, a retriever fetches the most relevant documents or data points from an external source, which are then passed to the LLM as further context for generating the response. Without RAG, the LLM would try to reconstruct everything from its parametric knowledge, which causes hallucination. With RAG, it reads the retrieved information directly, instead of reconstructing it from memory. This is what reduces hallucination in the first place.
 
-**Soft Prompt Tuning**:
-Fine-tuning an entire LLM is not practical in most cases – most modern models have billions of parameters, making full fine-tuning extremely expensive. Soft prompt tuning however, takes a different approach: it keeps the base model frozen and prepends a small set of trainable vectors to the input. Only these vectors are updated during the training while the rest of the model remains untouched. The result is a much cheaper fine tuning process while retaining the model's pre trained linguistic knowledge.
+The RAG described so far is just the generic version for text and documents. The question arises how it can be applied to graphs, since the graph structure now has to be taken into consideration. This is exactly the problem G-Retriever solves.
 
 
 
