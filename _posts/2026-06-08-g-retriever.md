@@ -6,8 +6,8 @@ author: "David Kajkic & Tim Terbach"
 ---
 
 ## Motivation
-
-Real-world data is, to a large extent, inherently graph-structured — ranging from knowledge graphs and recommendation systems to the web and e-commerce. These graphs are not just structural; their nodes and edges contain textual attributes, which defines them as textual graphs. While several approaches combining LLMs and GNNs already exist, they face two major limitations. First, converting a graph that consists of thousands of nodes and edges into a text sequence results in an excessive amount of tokens, which quickly surpasses the context window of most LLMs. Second, compressing an entire graph into one single embedding vector causes significant information loss, which leads to hallucination: the model makes up nodes and edges that do not even exist in the graph.
+To understand the problem G-Retriever solves, we first have to understand how modern LLMs work. Every word is translated and mapped into a vector – a list of numbers that stores its meaning. The model is then trained on massive amounts of text so it learns how these tokens relate to each other. Language generation works sequentially: The model generates one token at a time, and it always picks the most likely next token.
+This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words.   Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationship. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLMs context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
 
 G-Retriever provides an effective approach to address these issues, relying on three core concepts:
 - **GNN**: understands the graph structure
