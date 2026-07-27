@@ -49,7 +49,7 @@ Since no suitable benchmark for graph question answering existed, the authors in
 
 GraphQA uses three datasets that increase in difficulty:
 
-**ExplaGraphs**: Small graphs ($\approx 5$ nodes and $\approx 4$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts.
+**ExplaGraphs**: Small graphs ($$\approx 5$$ nodes and $$\approx 4$$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts.
 
 **SceneGraphs**: Medium-sized graphs ($\approx 19$ nodes and $\approx 68$ edges), describing objects and their spatial relationships within images. A typical question would be: *"Is there a woman to the right of the person behind the computer?"* 
 
