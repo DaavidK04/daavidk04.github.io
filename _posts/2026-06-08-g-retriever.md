@@ -33,9 +33,10 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
 - [G-Retriever Architecture](#g-retriever-architecture)
-  - [Indexing:](#indexing)
-  - [Retrieval:](#retrieval)
-  - [Subgraph construction:](#subgraph-construction)
+  - [Indexing](#indexing)
+  - [Retrieval](#retrieval)
+  - [Subgraph construction](#subgraph-construction)
+  - [Generation](#generation)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
 - [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
@@ -68,7 +69,7 @@ The RAG described so far is just the generic version for text and documents. The
 
 Now, all three components from the background come together. G-Retriever processes each query through a four-step pipeline.
 
-### Indexing: 
+### Indexing
 Before any query is processed, all nodes and edges are converted into embedding vectors and stored:
 
 $$z_n = \text{LM}(x_n)$$
@@ -77,7 +78,7 @@ Here, $x_n$ is the text at a certain node $n$, $LM$ is the embedding model (Sent
 This is done upfront, so the system does not have to recompute the embeddings every time a new question comes in. The computed embeddings are then stored into a Nearest-Neighbor-Structure. With that, the whole graph is represented as searchable vectors. But the actual search – the crucial part that connects the user's question to the graph – is still missing. The next step deals with filling the gap from a query to the relevant nodes.
 
 
-### Retrieval: 
+### Retrieval
 The query is vectorized by the same embedding model, ensuring that the query and all nodes end up in the same vector space and can be compared.
 
 $$z_q = \text{LM}(x_q)$$
@@ -97,11 +98,33 @@ This may look confusing at first, but both formulas do essentially the same thin
 
 The retrieval passes loose, scattered hits. The naive idea is to just take the top k nodes and edges in between. However, this is not enough since the hits are spread out across the graph and are not related to each other, and a handful of loose items does not result in a coherent subgraph that can be passed on as context. The next step is to turn these scattered hits into a compact and connected subgraph.
 
-### Subgraph construction:
+### Subgraph construction
+
+The solution is called PCST – Prize-Collecting Steiner Tree. The name consists of two parts:
+
+- Steiner tree: Connects a set of relevant nodes into a connected tree. Intermediate nodes are allowed to be included to connect the relevant nodes, even though they are not relevant themselves.
+- Prize-Collecting: Not every node has to be connected necessarily. Every node has a prize (reward), every edge has a cost (price). The algorithm then decides which nodes are worth including, weighing their prizes against the edge cost needed to connect them.
+
+PCST balances two opposing goals: maximizing the collected relevance while staying small and coherent. 
+
+In G-Retriever, the prize is set to the relevance. The top k nodes and edges with a high cosine similarity receive prizes according to their similarity, the higher the similarity, the higher the prize. The rest outside of the top k gets 0. The cost on the other hand reflects the size: Every edge has its own cost ($C_e$), which stops the subgraph from growing uncontrollably. 
+
+Formally, this can be written as
+
+$$S^* = \arg\max_{S \subseteq G,\; S \text{ connected}} \left( \sum_{n \in V_S} \text{prize}(n) + \sum_{e \in E_S} \text{prize}(e) - \text{cost}(S) \right)$$
+
+The arg max searches for the subgraph S that maximizes the expression in the brackets, just like the arg top k from the retrieval step. The condition $S \subseteq G, S\ connected$ restricts the search to connected subgraphs of $G$, which is what guarantees that the result is one connected subgraph instead of scattered pieces. The two sums add up the prizes of all included nodes and edges. From this, the cost is subtracted, so the final score rewards relevance and penalizes size.
+
+The cost is defined as:
+
+$$\text{cost}(S) = |E_S| \times C_e$$
+
+The number of edges in the subgraph is multiplied by the cost per edge $C_e$. More edges mean higher cost and a larger subgraph, which is penalized. This is what keeps the subgraph compact.
 
 
 
-1. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
+### Generation
+The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
 
 ## GraphQA Benchmark
 
