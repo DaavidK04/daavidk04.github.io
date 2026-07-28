@@ -34,6 +34,8 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 - [Background](#background)
 - [G-Retriever Architecture](#g-retriever-architecture)
   - [Indexing:](#indexing)
+  - [Retrieval:](#retrieval)
+  - [Subgraph construction:](#subgraph-construction)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
 - [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
@@ -73,9 +75,33 @@ $$z_n = \text{LM}(x_n)$$
 
 Here, $x_n$ is the text at a certain node $n$, $LM$ is the embedding model (SentenceBERT in this case), and $z_n$ is the resulting embedding vector.
 This is done upfront, so the system does not have to recompute the embeddings every time a new question comes in. The computed embeddings are then stored into a Nearest-Neighbor-Structure. With that, the whole graph is represented as searchable vectors. But the actual search – the crucial part that connects the user's question to the graph – is still missing. The next step deals with filling the gap from a query to the relevant nodes.
-1. **Retrieval**: When a query arrives, it gets encoded the same way as the nodes and edges. (Top k most similar nodes, most relevant parts of the graph...)
-2. **Subgraph construction**: Difference between RAG and G-Retriever, PCST (how deep should we explain that?)
-3. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
+
+
+### Retrieval: 
+The query is vectorized by the same embedding model, ensuring that the query and all nodes end up in the same vector space and can be compared.
+
+$$z_q = \text{LM}(x_q)$$
+
+As before, $LM$ is the embedding model and $z_q$ is the embedding vector. The only difference is that $x_q$ is the query, and not one specific node. 
+Since query and nodes are now comparable, their similarity can be measured through cosine similarity:
+
+$$\cos(z_q, z_n) = \frac{z_q \cdot z_n}{\|z_q\| \, \|z_n\|}$$
+
+To calculate the similarity between a node and the query, their scalar product is divided by the product of both vectors' lengths. By dividing out the lengths, only the direction of the vectors matters.  The result is a value between -1 and 1. A value of -1 means the vectors point in opposite directions, so they are unrelated, while a value near 1 means the node and the query are similar. However, since a graph contains a large number of nodes and edged, only the most relevant ones are filtered out:
+
+$$V_k = \operatorname*{arg\,topk}_{n \in V} \cos(z_q, z_n)$$
+
+$$E_k = \operatorname*{arg\,topk}_{e \in E} \cos(z_q, z_e)$$
+
+This may look confusing at first, but both formulas do essentially the same thing: $\operatorname*{arg\,topk}$ takes the $k$ elements with the highest values out of all nodes $n$ in the node set $V$ (same goes for all edges $e$ in $E$). So all $k$ nodes and edges with the highest similarity to the query are kept.
+
+The retrieval passes loose, scattered hits. The naive idea is to just take the top k nodes and edges in between. However, this is not enough since the hits are spread out across the graph and are not related to each other, and a handful of loose items does not result in a coherent subgraph that can be passed on as context. The next step is to turn these scattered hits into a compact and connected subgraph.
+
+### Subgraph construction:
+
+
+
+1. **Generation**: The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
 
 ## GraphQA Benchmark
 
