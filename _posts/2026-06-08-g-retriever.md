@@ -21,7 +21,7 @@ This works remarkably well – as long as the input is bare text. However, not a
 
 G-Retriever provides an effective approach to address these issues, relying on three core concepts:
 - **GNN** (Graph Neural Network): understands the graph structure
-- **LLM** (Large Language Lodel): understands the text and generates answers
+- **LLM** (Large Language Model): understands the text and generates answers
 - **RAG** (Retrieval-Augmented Generation): retrieves only the relevant subgraph instead of passing the entire graph to the LLM
 
 The central concept is that answering a specific question requires only a small subset of the entire graph. G-Retriever uses the PCST algorithm to find this relevant subgraph, while keeping all relevant nodes and edges and still fitting into the LLM's context window.
@@ -36,7 +36,11 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
   - [Indexing](#indexing)
   - [Retrieval](#retrieval)
   - [Subgraph construction](#subgraph-construction)
-  - [Generation](#generation)
+  - [Answer Generation](#answer-generation)
+    - [Graph encoder (GAT)](#graph-encoder-gat)
+    - [Projection (MLP)](#projection-mlp)
+    - [Textualization](#textualization)
+    - [Frozen LLM + Soft Prompt Tuning](#frozen-llm--soft-prompt-tuning)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
 - [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
@@ -123,8 +127,84 @@ The number of edges in the subgraph is multiplied by the cost per edge $C_e$. Mo
 
 
 
-### Generation
-The retrieved subgraph goes through two parallel paths. First, a graph attention network (gat) encodes the graph structure into a vector, which a small MLP (explain mlp and gat?) then maps into the LLM's vector space. Then the subgraph is converted into a text format listing nodes and edges, then concatenated with the query. Both are fed into the LLM which generates the final answer. 
+### Answer Generation
+
+The PCST outputs a compact subgraph, however, a subgraph is still not an answer. It is passed to the LLM through two parallel ways – as a structure (vector) and as text. Both are necessary, because they carry different information: The vector carries the overall structure, the text carries the concrete attributes – actual names, values, and relations as readable text. An LLM with just the vector would know the structure but not the details; with just the text it would lose the structural overview. 
+
+#### Graph encoder (GAT)
+
+The subgraph goes through a Graph Attention Network. A GAT is a neural network for graphs: it allows nodes to weigh how much they care about their neighbors, encoding the structural information into vector representations. As a result, the whole subgraph is pooled into a single vector. 
+
+Formally, this can be described as
+
+$$h_g = \text{POOL}(\text{GNN}_{\phi_1}(S^*))$$
+
+where $S^*$ is the subgraph from PCST, $\text{GNN}_{\phi_1}$ is the graph encoder and $\phi_1$ are the trainable parameters. $\text{POOL}$ is the operation that summarizes all node-vectors to a single vector, because the LLM later gets one graph-vector as its prompt, not hundreds of vectors. 
+In most cases, it is the mean value of all nodes. $h_g$ is the result: the single vector that represents the whole subgraph. Still, $h_g$ is not something the LLM can read yet. So we need something to translate it into the vector space of the LLM.
+
+#### Projection (MLP)
+
+A small neural network, called multi-layer perceptron (MLP), translates $h_g$ into the vector space of the LLM, since the graph encoder and the LLM work in different vector spaces. The result is a "graph-token" which is attached to the LLM-Input.
+
+$$\hat{h}_g = \text{MLP}_{\phi_2}(h_g)$$
+
+Here, $h_g$ is the graph vector from earlier, $\text{MLP}_{\phi_2}$  is the projection-MLP, and $\phi_2$ are its trainable parameters. It is essentially the counterpart to $\phi_1$. $\hat{h}_g$ is the result: the same graph vector, now in the vector space of the LLM. This graph-token acts as a soft prompt: a small, trainable input that steers the LLM without changing its weights.
+
+#### Textualization 
+
+In parallel, the same subgraph is textualized into a CSV-like list of nodes and edges.
+
+Nodes:
+
+| node_id | node_attr     |
+|---------|---------------|
+| 15      | justin bieber |
+| 294     | jaxon bieber  |
+| 356     | jeremy bieber |
+
+
+Edges:
+
+| src | edge_attr              | dst |
+|-----|------------------------|-----|
+| 15  | people.person.parents  | 356 |
+| 356 | people.person.children | 294 |
+
+This text is then combined with the question and passed to the LLM.
+
+#### Frozen LLM + Soft Prompt Tuning
+
+Lastly, both sides from the pipeline are merged and put into the LLM. The LLM then generates the answer, token by token, via its autoregressive loop. 
+
+$$p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q) = \prod_{i=1}^{r} p_{\theta, \phi_1, \phi_2}(y_i \mid y_{<i}, [\hat{h}_g; h_t])$$
+
+Here, $p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q)$ is just the probability of the answer $Y$, given the subgraph $S^*$ and the query $x_q$. The three indices are all involved parameters – $\theta$ the LLM, $\phi_1$ the GAT, $\phi_2$ the MLP. Only the parameters of the GAT and the MLP are trained. 
+$\prod_{i=1}^{r}$ is the product over all tokens plus $p(y_i \mid y_{<i})$ – this is the same autoregressive loop from the background, now conditioned on the graph.
+$[\hat{h}_g; h_t]$ is the concatenation of both approaches from the pipeline before, $\hat{h}_g$ is the graph-token and $h_t$ is the textualized graph plus the question.
+Because only $\phi_1$ and $\phi_2$ are trained, this training method is called soft prompt tuning: the soft prompt (and the graph encoder) are trained, while the LLM itself stays untouched. This ensures efficiency while maintaining the LLM's language ability.
+
+Let's walk through the whole pipeline with a familiar example.
+
+**1. Indexing**
+Every node and edge is converted into embeddings. "justin bieber", "jaxon bieber", "jeremy bieber", "parents", "children" are all vectorized. The intermediate result is a list of all nodes and edges, represented as vectors.
+
+**2. Retrieval**
+The query "What is the name of Justin Bieber's brother?" is also vectorized. Its cosine similarity is computed against all nodes and edges. The most similar nodes and edges will be "Justin Bieber" and the relation edges like 'parents' and 'children', since "Justin Bieber" literally appears in the query, and 'parents' and 'children' are semantically close to 'brother'. These top hits are kept – but they are just loose pieces, not a connected graph yet. However, this intermediate retrieval result is the exact setup for PCST.
+
+**3. PCST**
+Prizes are assigned: The relevant hits from retrieval get high prizes. 
+
+The first key trick – the connector node: "Jeremy Bieber" is not directly relevant on its own, since he is not in the query, but he is needed to connect Justin to the rest of the graph. 
+
+The second key trick – bringing along the answer node via structure: "Jaxon Bieber" is the actual answer, even though he does not appear in the query at all. He makes it into the subgraph because he is connected to the relevant part via "children".
+
+Intermediate result: A small, connected subgraph: Justin $\rightarrow$ Jeremy $\rightarrow$ Jaxon
+
+
+**4. Answer generation**
+The subgraph goes through both pipeline paths: as a vector (GAT $\rightarrow$ MLP $\rightarrow$ graph-token) and as text (the CSV table from earlier). Both, along with the question, go into the frozen LLM. The LLM produces the correct answer: Jaxon Bieber.
+
+The output is now set, but how good is it? Evaluating this requires a proper benchmark.
 
 ## GraphQA Benchmark
 
