@@ -51,10 +51,8 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
 ## Background
 
 **GNN**:
-A Graph Neural Network is essentially a neural network tailored for graph structures. Instead of processing fixed inputs, it learns representations by having each node collect information from its neighbors. Through multiple layers of message passing, these local insights propagate across the graph, allowing the model to capture both local patterns and the global structure. In formal terms, this message passing step looks as follows:
-$$h_v^{(k)} = \text{UPDATE}\left(h_v^{(k-1)},\ \text{AGGREGATE}\left(\{h_u^{(k-1)} : u \in \mathcal{N}(v)\}\right)\right)$$
-//explain formula, maybe move into architecure section?
-//transition to llm: However, a GNN only delivers vectors, not a textual answer. This is where LLMs come in handy.
+A Graph Neural Network is essentially a neural network tailored for graph structures. Instead of processing fixed inputs, it learns representations by having each node collect information from its neighbors. Through multiple layers of message passing, this information propagates across the graph, allowing the model to capture both local patterns and the global structure. 
+However, a GNN only delivers vectors, not a textual answer. This is where LLMs come in handy.
 
 **LLM**:
 As already mentioned in the motivation section, a Large Language Model generates one token after another. This mechanism is called autoregressive generation. It always chooses the most likely next token given everything written so far. In short, we define this as:
@@ -178,9 +176,12 @@ Lastly, both sides from the pipeline are merged and put into the LLM. The LLM th
 
 $$p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q) = \prod_{i=1}^{r} p_{\theta, \phi_1, \phi_2}(y_i \mid y_{<i}, [\hat{h}_g; h_t])$$
 
-Here, $p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q)$ is just the probability of the answer $Y$, given the subgraph $S^*$ and the query $x_q$. The three indices are all involved parameters – $\theta$ the LLM, $\phi_1$ the GAT, $\phi_2$ the MLP. Only the parameters of the GAT and the MLP are trained. 
+Here, $p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q)$ is just the probability of the answer $Y$, given the subgraph $S^*$ and the query $x_q$. The three indices are all involved parameters – $\theta$ the LLM, $\phi_1$ the GAT, $\phi_2$ the MLP. Only the parameters of the GAT and the MLP are trained.
+
 $\prod_{i=1}^{r}$ is the product over all tokens plus $p(y_i \mid y_{<i})$ – this is the same autoregressive loop from the background, now conditioned on the graph.
+
 $[\hat{h}_g; h_t]$ is the concatenation of both approaches from the pipeline before, $\hat{h}_g$ is the graph-token and $h_t$ is the textualized graph plus the question.
+
 Because only $\phi_1$ and $\phi_2$ are trained, this training method is called soft prompt tuning: the soft prompt (and the graph encoder) are trained, while the LLM itself stays untouched. This ensures efficiency while maintaining the LLM's language ability.
 
 Let's walk through the whole pipeline with a familiar example.
