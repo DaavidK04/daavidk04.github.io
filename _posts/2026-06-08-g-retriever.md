@@ -176,7 +176,7 @@ Lastly, both sides from the pipeline are merged and put into the LLM. The LLM th
 
 $$p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q) = \prod_{i=1}^{r} p_{\theta, \phi_1, \phi_2}(y_i \mid y_{<i}, [\hat{h}_g; h_t])$$
 
-Here, $p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q)$ is just the probability of the answer $Y$, given the subgraph $S^*$ and the query $x_q$. The three indices are all involved parameters – $\theta$ the LLM, $\phi_1$ the GAT, $\phi_2$ the MLP. Only the parameters of the GAT and the MLP are trained.
+Here, $$p_{\theta, \phi_1, \phi_2}(Y \mid S^*, x_q)$$ is just the probability of the answer $$Y$$, given the subgraph $$S^*$$ and the query $$x_q$$. The three indices are all involved parameters – $$\theta$$ the LLM, $$\phi_1$$ the GAT, $$\phi_2$$ the MLP. Only the parameters of the GAT and the MLP are trained.
 
 $\prod_{i=1}^{r}$ is the product over all tokens plus $p(y_i \mid y_{<i})$ – this is the same autoregressive loop from the background, now conditioned on the graph.
 
