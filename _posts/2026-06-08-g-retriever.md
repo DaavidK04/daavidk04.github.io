@@ -187,12 +187,15 @@ Because only $\phi_1$ and $\phi_2$ are trained, this training method is called s
 Let's walk through the whole pipeline with a familiar example.
 
 **1. Indexing**
+
 Every node and edge is converted into embeddings. "justin bieber", "jaxon bieber", "jeremy bieber", "parents", "children" are all vectorized. The intermediate result is a list of all nodes and edges, represented as vectors.
 
 **2. Retrieval**
+
 The query "What is the name of Justin Bieber's brother?" is also vectorized. Its cosine similarity is computed against all nodes and edges. The most similar nodes and edges will be "Justin Bieber" and the relation edges like 'parents' and 'children', since "Justin Bieber" literally appears in the query, and 'parents' and 'children' are semantically close to 'brother'. These top hits are kept – but they are just loose pieces, not a connected graph yet. However, this intermediate retrieval result is the exact setup for PCST.
 
 **3. PCST**
+
 Prizes are assigned: The relevant hits from retrieval get high prizes. 
 
 The first key trick – the connector node: "Jeremy Bieber" is not directly relevant on its own, since he is not in the query, but he is needed to connect Justin to the rest of the graph. 
@@ -203,6 +206,7 @@ Intermediate result: A small, connected subgraph: Justin $\rightarrow$ Jeremy $\
 
 
 **4. Answer generation**
+
 The subgraph goes through both pipeline paths: as a vector (GAT $\rightarrow$ MLP $\rightarrow$ graph-token) and as text (the CSV table from earlier). Both, along with the question, go into the frozen LLM. The LLM produces the correct answer: Jaxon Bieber.
 
 The output is now set, but how good is it? Evaluating this requires a proper benchmark.
