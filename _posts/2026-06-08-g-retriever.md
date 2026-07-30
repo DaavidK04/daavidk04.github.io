@@ -43,8 +43,9 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
     - [**Frozen LLM + Soft Prompt Tuning**](#frozen-llm--soft-prompt-tuning)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
-- [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
 - [Critical Assessment](#critical-assessment)
+  - [Strengths](#strengths)
+  - [Limitations](#limitations)
 - [Conclusion](#conclusion)
 - [References](#references)
 
@@ -270,30 +271,26 @@ The table shows that all three components matter – especially the graph encode
 
 These results are undoubtedly impressive, but a closer look reveals that performance numbers alone rarely catch the whole picture. Examining the remaining limitations is essential for a complete assessment.
 
-## Challenges: Hallucination & Scalability
-
-Two of the most critical limitations of existing approaches are hallucinations and poor scalability. G-Retriever tackles both through its RAG-based design.
-
-**<u>Hallucinations</u>**:
-- Baseline compresses entire graph into single embedding vector -> information loss-> LLM hallucinations nodes/edges
-- G-Retriever retrieves actual nodes/edges directly from graph -> less hallucination
-- Valid Nodes: 31% -> 77%, Valid Edges: 12% -> 76%, Fully Valid Graphs: 8% -> 62% (statistics relevant to the reader?)
-- 38% still not fully valid -> hallucination reduced, not eliminated
-
-
-**<u>Scalability</u>**:
-- Converting full graph to text not feasible for large graphs
-- WebQSP: $\approx 100000$ tokens before retrieval -> 610 after ($\downarrow$ 99%)
-- Training time also reduces (again a lot of numbers, leave out or not?)
-- Explain why pcst makes this possible? 
 
 ## Critical Assessment
 
-- G-Retriever outperforms all baselines -> weak baseline -> no comparison against specialized knowledge graph systems that have been developed for years
-- Hallucinations reduced BUT NOT ELIMINATED! – 38% still not fully valid
-- Static procedure: pcst = fixed algorithm, not trainable. Authors admit this as limitation, suggest trainable retrieval 
-- Only tested with Llama2-7B -> other llms?
-- GraphQA benchmark uses existing datasets that were originally not designed for graph QA
+Despite its strong results, like every other method, G-Retriever is not without limitations. Understanding both its strengths and weaknesses provides a more balanced view of the approach.
+
+### Strengths
+
+As earlier mentioned, G-Retriever drastically reduces the number of input tokens by up to 99%, which makes it possible to process graphs that would otherwise exceed the context window. By retrieving facts directly from the knowledge graph, G-Retriever grounds its responses in structured data rather than relying on its parametric knowledge. As a result, the number of fully valid answers increases from 8% to 62%. The ablation study shows that both the graph encoder and the textualized graph contribute significantly to the performance. This confirms that the pipeline structure is genuinely justified by evidence, not just a nice-sounding design choice.
+
+### Limitations
+
+While validity is improved significantly, hallucinations remain a challenge. The evaluation shows that 38% of all answers are not fully valid, which means that nodes or edges were hallucinated. For real world applications where factual correctness is critical, this unreliability limits G-Retriever's readiness.
+
+The current retrieval process relies on a fixed PCST algorithm rather than a trainable retrieval module. PCST cannot adapt its retrieval strategy based on feedback. The authors themselves identify this lack of trainability as an important limitation and a potential area for future research.
+
+The retrieval also heavily relies on the similarity between the user query and the graph's attributes. Mismatches in phrasing can cause relevant information to never get retrieved in the first place, and nothing in the pipeline is trained to fix that mismatch. It's a classic "garbage in, garbage out" risk.
+
+Lastly, the PCST algorithm is NP-hard in general. In practice, G-Retriever uses an efficient approximation, so it runs fine on the tested datasets. But for very large or constantly changing graphs, this step could still become a bottleneck.
+
+Overall, these limitations show that G-Retriever is not a complete solution to graph reasoning yet. But it is an important step in that direction. By demonstrating how graph structure and language models can synergize, the paper provides a strong foundation for further development.
 
 ## Conclusion
 
