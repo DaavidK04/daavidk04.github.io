@@ -252,12 +252,24 @@ Because G-Retriever only keeps the relevant subgraph, the data the LLM has to pr
 
 The most striking part is the payoff that PCST provides. For WebQSP, the token usage was reduced from $\approx$100,000 tokens to $\approx$600 tokens. This is more than just a numerical reduction – as it makes working with large graphs possible in the first place. A WebQSP graph would not fit in the context window – our problem from the motivation section. The reduction stands out less for smaller graphs: For SceneGraphs, the token usage was reduced by "only" 83%, which shows that PCST provides more benefits for larger graphs.
 
-**<u>Hallucination Mitigation</u>**:
-- 54% less hallucinations compared to baseline
-- reference table 5?
+**Hallucination**
 
-**<u>Ablation study</u>**:
+The number of fully valid graphs (answers where all referenced nodes and edges actually exist in the graph) increased from 8% for the baseline to 62% for G-Retriever. This confirms the statement from the background: RAG reduces hallucinations, because the model can read the facts directly, instead of relying on its parametric knowledge. However, 62% means that 38% are not fully valid. Hallucinations are reduced dramatically, but not eliminated.
+
+**Ablation study**
   
+An ablation study evaluates the impact of components by removing them and measuring the resulting change in performance. 
+
+| Removed component | Performance drop |
+|-------------------|------------------|
+| Graph encoder     | −22.5%           |
+| Textualized graph | −19.2%           |
+| Retrieval         | −9.4%            |
+
+The table shows that all three components matter – especially the graph encoder and the textualized graph. Leaving either one out hurts, which confirms our point in the architecture: both matter. Retrieval also contributes, though less dramatically. This makes sense, because without retrieval, the model still receives both information sources, just with more irrelevant nodes and edges around them. Removing the textualized graph or the graph encoder, on the other hand, takes away an entire source of information.
+
+These results are undoubtedly impressive, but a closer look reveals that performance numbers alone rarely catch the whole picture. Examining the remaining limitations is essential for a complete assessment.
+
 ## Challenges: Hallucination & Scalability
 
 Two of the most critical limitations of existing approaches are hallucinations and poor scalability. G-Retriever tackles both through its RAG-based design.
