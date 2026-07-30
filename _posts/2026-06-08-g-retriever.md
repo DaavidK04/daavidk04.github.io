@@ -226,16 +226,31 @@ GraphQA uses three datasets that increase in difficulty:
 The three datasets are deliberately varied – the goal is to show that G-Retriever works across different graph types and sizes, not just one specific use case.
 Now, we have the benchmark and the metrics – let's take a look at how G-Retriever actually performs.
 
-
 ## Results
 
-**<u>Performance</u>**:
-- G-retriever beats all baselines on all three datasets
-- G-Retriever + LoRA best configuration in total
+G-Retriever was tested in three different configurations.
 
-**<u>Efficiency</u>**:
-- SceneGraphs: 83% less tokens, 29% faster
-- WebQSP: 99% less tokens, 67% faster
+- Inference-only: It merely relies on a fully frozen LLM to answer the questions directly, without any training.
+- Frozen LLM + Prompt Tuning: The LLM stays frozen, only the prompts get trained. This is the soft prompt tuning from the architecture section.
+- Tuned LLM (LoRA, an efficient fine-tuning method): The LLM itself gets trained.
+
+The results show a consistent picture across all three configurations. 
+
+**Performance**
+
+G-Retriever beats all baselines on all three datasets. The gains are largest in the frozen LLM with prompt tuning – accuracy improves by roughly 28% to 47% over the baselines. The best overall results come from combining G-Retriever with a tuned LLM. The most striking part is that even the frozen LLM variant performs strongly: the model still beats approaches that were trained, even though the LLM was not touched at all. This is exactly where soft prompt tuning pays off.
+
+
+**Efficiency**
+
+Because G-Retriever only keeps the relevant subgraph, the data the LLM has to process drops dramatically:
+
+| Dataset     | Token reduction | Node reduction | Training time |
+|-------------|-----------------|----------------|---------------|
+| WebQSP      | −99%            | −99%           | −67%          |
+| SceneGraphs | −83%            | —              | −29%          |
+
+The most striking part is the payoff that PCST provides. For WebQSP, the token usage was reduced from $\approx$100,000 tokens to $\approx$600 tokens. This is more than just a numerical reduction – as it makes working with large graphs possible in the first place. A WebQSP graph would not fit in the context window – our problem from the motivation section. The reduction stands out less for smaller graphs: For SceneGraphs, the token usage was reduced by "only" 83%, which shows that PCST provides more benefits for larger graphs.
 
 **<u>Hallucination Mitigation</u>**:
 - 54% less hallucinations compared to baseline
