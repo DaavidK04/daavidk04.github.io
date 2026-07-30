@@ -37,10 +37,10 @@ Furthermore, the authors introduce GraphQA, a new benchmark test that evaluates 
   - [Retrieval](#retrieval)
   - [Subgraph construction](#subgraph-construction)
   - [Answer Generation](#answer-generation)
-    - [Graph encoder (GAT)](#graph-encoder-gat)
-    - [Projection (MLP)](#projection-mlp)
-    - [Textualization](#textualization)
-    - [Frozen LLM + Soft Prompt Tuning](#frozen-llm--soft-prompt-tuning)
+    - [**Graph encoder (GAT)**](#graph-encoder-gat)
+    - [**Projection (MLP)**](#projection-mlp)
+    - [**Textualization**](#textualization)
+    - [**Frozen LLM + Soft Prompt Tuning**](#frozen-llm--soft-prompt-tuning)
 - [GraphQA Benchmark](#graphqa-benchmark)
 - [Results](#results)
 - [Challenges: Hallucination \& Scalability](#challenges-hallucination--scalability)
@@ -129,7 +129,7 @@ The number of edges in the subgraph is multiplied by the cost per edge $C_e$. Mo
 
 The PCST outputs a compact subgraph, however, a subgraph is still not an answer. It is passed to the LLM through two parallel ways – as a structure (vector) and as text. Both are necessary, because they carry different information: The vector carries the overall structure, the text carries the concrete attributes – actual names, values, and relations as readable text. An LLM with just the vector would know the structure but not the details; with just the text it would lose the structural overview. 
 
-#### Graph encoder (GAT)
+#### **Graph encoder (GAT)**
 
 The subgraph goes through a Graph Attention Network. A GAT is a neural network for graphs: it allows nodes to weigh how much they care about their neighbors, encoding the structural information into vector representations. As a result, the whole subgraph is pooled into a single vector. 
 
@@ -140,7 +140,7 @@ $$h_g = \text{POOL}(\text{GNN}_{\phi_1}(S^*))$$
 where $S^*$ is the subgraph from PCST, $\text{GNN}_{\phi_1}$ is the graph encoder and $\phi_1$ are the trainable parameters. $\text{POOL}$ is the operation that summarizes all node-vectors to a single vector, because the LLM later gets one graph-vector as its prompt, not hundreds of vectors. 
 In most cases, it is the mean value of all nodes. $h_g$ is the result: the single vector that represents the whole subgraph. Still, $h_g$ is not something the LLM can read yet. So we need something to translate it into the vector space of the LLM.
 
-#### Projection (MLP)
+#### **Projection (MLP)**
 
 A small neural network, called multi-layer perceptron (MLP), translates $h_g$ into the vector space of the LLM, since the graph encoder and the LLM work in different vector spaces. The result is a "graph-token" which is attached to the LLM-Input.
 
@@ -148,7 +148,7 @@ $$\hat{h}_g = \text{MLP}_{\phi_2}(h_g)$$
 
 Here, $h_g$ is the graph vector from earlier, $\text{MLP}_{\phi_2}$  is the projection-MLP, and $\phi_2$ are its trainable parameters. It is essentially the counterpart to $\phi_1$. $\hat{h}_g$ is the result: the same graph vector, now in the vector space of the LLM. This graph-token acts as a soft prompt: a small, trainable input that steers the LLM without changing its weights.
 
-#### Textualization 
+#### **Textualization** 
 
 In parallel, the same subgraph is textualized into a CSV-like list of nodes and edges.
 
@@ -170,7 +170,7 @@ Edges:
 
 This text is then combined with the question and passed to the LLM.
 
-#### Frozen LLM + Soft Prompt Tuning
+#### **Frozen LLM + Soft Prompt Tuning**
 
 Lastly, both sides from the pipeline are merged and put into the LLM. The LLM then generates the answer, token by token, via its autoregressive loop. 
 
@@ -213,17 +213,18 @@ The output is now set, but how good is it? Evaluating this requires a proper ben
 
 ## GraphQA Benchmark
 
-Since no suitable benchmark for graph question answering existed, the authors introduced GraphQA. Each entry in the benchmark follows a straightforward structure: a textual graph, a question, and an answer. The graph is provided in a CSV-like format listing all nodes and edges, and the model's job is to find the correct answer based on that.
+Since no suitable benchmark for graph question answering existed, the authors introduced GraphQA. Each entry in the benchmark follows a straightforward structure: a textual graph, a question, and an answer. The graph is provided in the CSV-like format we saw earlier, and the model's job is to find the correct answer based on that.
 
 GraphQA uses three datasets that increase in difficulty:
 
-**ExplaGraphs**: Small graphs ($$\approx 5$$ nodes and $$\approx 4$$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts.
+**ExplaGraphs**: Small graphs ($\approx 5$ nodes and $\approx 4$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts. The measured metric is **accuracy**.
 
-**SceneGraphs**: Medium-sized graphs ($\approx 19$ nodes and $\approx 68$ edges), describing objects and their spatial relationships within images. A typical question would be: *"Is there a woman to the right of the person behind the computer?"* 
+**SceneGraphs**: Medium-sized graphs ($\approx 19$ nodes and $\approx 68$ edges), describing objects and their spatial relationships within images. A typical question would be: *"Is there a woman to the right of the person behind the computer?"*  The measured metric is **accuracy**.
 
-**WebQSP**: Large scale knowledge graphs, requiring multi-hop reasoning across several edges. A typical question would be: *"What is the name of Justin Bieber's brother?"*
+**WebQSP**: Large scale knowledge graphs ($\approx 1400$ nodes), requiring multi-hop reasoning across several edges. A typical question would be: *"What is the capital of the country Ronaldo was born in?"* The measured metric is **Hit@1**: it checks whether the highest scoring result matches the ground truth, which matters because a question can have several valid answers.
 
 The three datasets are deliberately varied – the goal is to show that G-Retriever works across different graph types and sizes, not just one specific use case.
+Now, we have the benchmark and the metrics – let's take a look at how G-Retriever actually performs.
 
 
 ## Results
