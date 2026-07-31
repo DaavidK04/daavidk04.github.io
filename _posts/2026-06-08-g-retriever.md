@@ -294,11 +294,6 @@ Overall, these limitations show that G-Retriever is not a complete solution to g
 
 ## Conclusion
 
-- G-Retriever is the first RAG-based approach for general textual graph QA
-- Combines GNN, LLM and RAG effectively to tackle hallucination and scalability
-- GraphQA benchmark fills a gap that previously existed in the field
-- Results show strong performance across the graph types and sizes
-- Static retrieval main limitation -> trainable retrieval logical next step
-- Overall a solid foundation for future work on graph based question answering
+G-Retriever is the first RAG-based approach for general textual graphs. By combining graph neural networks, large language models, and retrieval-augmented generation, it introduces a framework for question-answering over text-attributed graphs. The results show that this approach can outperform existing baselines, scale to larger graphs, and improve answer grounding. At the same time, limitations such as remaining hallucinations and static retrieval highlight important leverage points for future research. Yet, G-Retriever provides a strong foundation for interacting with graphs as naturally as we interact with LLMs – bringing the idea of "chatting with your graph" closer to reality.
 
 ## References
