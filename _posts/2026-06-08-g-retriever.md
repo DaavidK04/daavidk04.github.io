@@ -16,8 +16,14 @@ MathJax = {
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
 
 ## Motivation
-To understand the problem G-Retriever solves, we first have to understand how modern LLMs work. Every word is translated and mapped into a vector – a list of numbers that stores its meaning. The model is then trained on massive amounts of text so it learns how these tokens relate to each other. Language generation works sequentially: The model generates one token at a time, and it always picks the most likely next token.
-This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words.   Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationship. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLMs context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
+"What is the name of Justin Bieber's brother?" Simple question – but the answer isn't written down in any single place. It's scattered across a web of connections: Justin, his parents, their children. To answer it, you have to follow the links. This is exactly the kind of problem G-Retriever is built for.
+To understand how it works, we first have to understand how modern LLMs work. Every word is translated and mapped into a vector – a list of numbers that stores its meaning. The model is then trained on massive amounts of text so it learns how these tokens relate to each other. Language generation works sequentially: The model generates one token at a time, and it always picks the most likely next token.
+This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words. Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationship. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. 
+
+![A small knowledge graph connecting Justin Bieber to his family through relations like sibling, parents, and children](/assets/images/bieber-graph.png)
+*Adapted from Figure 2, [He et al. (2024)](https://arxiv.org/abs/2402.07630)*
+
+Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLMs context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
 
 G-Retriever provides an effective approach to address these issues, relying on three core concepts:
 - **GNN** (Graph Neural Network): understands the graph structure
@@ -71,6 +77,8 @@ The RAG described so far is just the generic version for text and documents. The
 ## G-Retriever Architecture
 
 Now, all three components from the background come together. G-Retriever processes each query through a four-step pipeline.
+
+![The G-Retriever pipeline: indexing, retrieval, and subgraph construction feed into answer generation, where a graph-encoded vector and the textualized subgraph are combined in a frozen LLM](/assets/images/pipeline.png)
 
 ### Indexing
 Before any query is processed, all nodes and edges are converted into embedding vectors and stored:
@@ -218,6 +226,9 @@ Since no suitable benchmark for graph question answering existed, the authors in
 
 GraphQA uses three datasets that increase in difficulty:
 
+![Three example entries from the GraphQA benchmark: an explanation graph, a scene graph, and a knowledge graph, each with its graph structure, textualized form, question, and answer](/assets/images/graphqa-examples.png)
+*Figure 2 from [He et al. (2024)](https://arxiv.org/abs/2402.07630)*
+
 **ExplaGraphs**: Small graphs ($\approx 5$ nodes and $\approx 4$ edges), focused on commonsense reasoning. A typical question would be: *"Do argument 1 and argument 2 support or counter each other?"* The model has to understand basic relationships between concepts. The measured metric is **accuracy**.
 
 **SceneGraphs**: Medium-sized graphs ($\approx 19$ nodes and $\approx 68$ edges), describing objects and their spatial relationships within images. A typical question would be: *"Is there a woman to the right of the person behind the computer?"*  The measured metric is **accuracy**.
@@ -297,3 +308,13 @@ Overall, these limitations show that G-Retriever is not a complete solution to g
 G-Retriever is the first RAG-based approach for general textual graphs. By combining graph neural networks, large language models, and retrieval-augmented generation, it introduces a framework for question-answering over text-attributed graphs. The results show that this approach can outperform existing baselines, scale to larger graphs, and improve answer grounding. At the same time, limitations such as remaining hallucinations and static retrieval highlight important leverage points for future research. Yet, G-Retriever provides a strong foundation for interacting with graphs as naturally as we interact with LLMs – bringing the idea of "chatting with your graph" closer to reality.
 
 ## References
+
+[1] He, X., Bresson, X., Laurent, T., Perold, A., LeCun, Y., & Hooi, B. (2024). *G-Retriever: Retrieval-Augmented Generation for Textual Graph Understanding and Question Answering.* arXiv:2402.07630. [https://arxiv.org/abs/2402.07630](https://arxiv.org/abs/2402.07630)
+
+[2] Lewis, P., et al. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* arXiv:2005.11401. [https://arxiv.org/abs/2005.11401](https://arxiv.org/abs/2005.11401)
+
+[3] Reimers, N., & Gurevych, I. (2019). *Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks.* arXiv:1908.10084. [https://arxiv.org/abs/1908.10084](https://arxiv.org/abs/1908.10084)
+
+[4] Touvron, H., et al. (2023). *Llama 2: Open Foundation and Fine-Tuned Chat Models.* arXiv:2307.09288. [https://arxiv.org/abs/2307.09288](https://arxiv.org/abs/2307.09288)
+
+[5] Hu, E. J., et al. (2021). *LoRA: Low-Rank Adaptation of Large Language Models.* arXiv:2106.09685. [https://arxiv.org/abs/2106.09685](https://arxiv.org/abs/2106.09685)
