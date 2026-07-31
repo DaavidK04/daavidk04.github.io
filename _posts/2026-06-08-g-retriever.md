@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "G-Retriever: Retrieval-Augmented Generation for Textual Graph Understanding"
-date: 2026-06-05
+date: 2026-07-31
 author: "David Kajkic & Tim Terbach"
 ---
 
@@ -18,12 +18,12 @@ MathJax = {
 ## Motivation
 "What is the name of Justin Bieber's brother?" Simple question – but the answer isn't written down in any single place. It's scattered across a web of connections: Justin, his parents, their children. To answer it, you have to follow the links. This is exactly the kind of problem G-Retriever is built for.
 To understand how it works, we first have to understand how modern LLMs work. Every word is translated and mapped into a vector – a list of numbers that stores its meaning. The model is then trained on massive amounts of text so it learns how these tokens relate to each other. Language generation works sequentially: The model generates one token at a time, and it always picks the most likely next token.
-This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words. Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationship. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. 
+This works remarkably well – as long as the input is bare text. However, not all data comes in a sequence of words. Real-world data is, to a large extent, stored as graphs. A graph is a structure that consists of nodes and edges, where nodes represent objects and edges the relationships. For example: "Justin Bieber" is connected to "Jaxon Bieber" through a "sibling" relation. 
 
 ![A small knowledge graph connecting Justin Bieber to his family through relations like sibling, parents, and children](/assets/images/bieber-graph.png)
 *Adapted from Figure 2, [He et al. (2024)](https://arxiv.org/abs/2402.07630)*
 
-Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLMs context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
+Naturally, the next idea would be to just paste the graph and its values into the LLM. This is where two problems occur: First, large graphs would be converted into huge amounts of text, which would explode the LLM's context window. Second, compressing the graph into a single vector would result in information loss, which would cause the LLM to hallucinate nodes and edges. 
 
 G-Retriever provides an effective approach to address these issues, relying on three core concepts:
 - **GNN** (Graph Neural Network): understands the graph structure
@@ -99,7 +99,7 @@ Since query and nodes are now comparable, their similarity can be measured throu
 
 $$\cos(z_q, z_n) = \frac{z_q \cdot z_n}{\|z_q\| \, \|z_n\|}$$
 
-To calculate the similarity between a node and the query, their scalar product is divided by the product of both vectors' lengths. By dividing out the lengths, only the direction of the vectors matters.  The result is a value between -1 and 1. A value of -1 means the vectors point in opposite directions, so they are unrelated, while a value near 1 means the node and the query are similar. However, since a graph contains a large number of nodes and edged, only the most relevant ones are filtered out:
+To calculate the similarity between a node and the query, their scalar product is divided by the product of both vectors' lengths. By dividing out the lengths, only the direction of the vectors matters.  The result is a value between -1 and 1. A value of -1 means the vectors point in opposite directions, so they are unrelated, while a value near 1 means the node and the query are similar. However, since a graph contains a large number of nodes and edges, only the most relevant ones are filtered out:
 
 $$V_k = \operatorname*{arg\,topk}_{n \in V} \cos(z_q, z_n)$$
 
@@ -124,7 +124,7 @@ Formally, this can be written as
 
 $$S^* = \arg\max_{S \subseteq G,\; S \text{ connected}} \left( \sum_{n \in V_S} \text{prize}(n) + \sum_{e \in E_S} \text{prize}(e) - \text{cost}(S) \right)$$
 
-The arg max searches for the subgraph S that maximizes the expression in the brackets, just like the arg top k from the retrieval step. The condition $S \subseteq G, S\ connected$ restricts the search to connected subgraphs of $G$, which is what guarantees that the result is one connected subgraph instead of scattered pieces. The two sums add up the prizes of all included nodes and edges. From this, the cost is subtracted, so the final score rewards relevance and penalizes size.
+The arg max searches for the subgraph $S$ that maximizes the expression in the brackets, just like the arg top k from the retrieval step. The condition $S \subseteq G, S\ connected$ restricts the search to connected subgraphs of $G$, which is what guarantees that the result is one connected subgraph instead of scattered pieces. The two sums add up the prizes of all included nodes and edges. From this, the cost is subtracted, so the final score rewards relevance and penalizes size.
 
 The cost is defined as:
 
@@ -136,7 +136,7 @@ The number of edges in the subgraph is multiplied by the cost per edge $C_e$. Mo
 
 ### Answer Generation
 
-The PCST outputs a compact subgraph, however, a subgraph is still not an answer. It is passed to the LLM through two parallel ways – as a structure (vector) and as text. Both are necessary, because they carry different information: The vector carries the overall structure, the text carries the concrete attributes – actual names, values, and relations as readable text. An LLM with just the vector would know the structure but not the details; with just the text it would lose the structural overview. 
+The PCST outputs a compact subgraph, however; a subgraph is still not an answer. It is passed to the LLM through two parallel ways – as a structure (vector) and as text. Both are necessary, because they carry different information: The vector carries the overall structure, the text carries the concrete attributes – actual names, values, and relations as readable text. An LLM with just the vector would know the structure but not the details; with just the text it would lose the structural overview. 
 
 #### **Graph encoder (GAT)**
 
